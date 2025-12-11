@@ -1,0 +1,69 @@
+import pandas as pd
+import numpy as np 
+
+import matplotlib
+import matplotlib.pyplot as plt
+import seaborn as sns 
+
+from sklearn.datasets import fetch_openml
+import xgboost as xgb 
+from sklearn.ensemble import RandomForestClassifier
+#from sklearn.tree import DecisionTreeClassifier, plot_tree
+from sklearn.model_selection import train_test_split
+from lime import lime_tabular
+
+import shap 
+shap.initjs()
+
+def load_file():
+    # Load Breast Cancer Wisconsin (Original) dataset from OpenML
+    data = fetch_openml(data_id= 43611 , version='active', as_frame=True)
+    df = data.frame.copy()
+    df.replace('?', np.nan, inplace=True)
+    x = df.drop(columns=['class'])
+    y = df['class']
+  
+    #Convert Dataframe to the list format
+    '''if isinstance(y, pd.DataFrame):
+        y = y.squeeze()  
+    #Convert textual columns to categorical
+    for col in x.select_dtypes(include=['object']).columns : 
+        x[col] = x[col].astype('category')'''
+    return x,y
+
+def train_and_test(x,y):
+    x_train, x_test, y_train, y_test = train_test_split(x,y, test_size = 0.3)
+    forest_clf = RandomForestClassifier()
+    forest_clf.fit(x_train, y_train)
+    label_map = {0: 'Malignant', 1: 'Benign'}
+    class_names = [label_map[int(c)] for c in forest_clf.classes_]
+    print(forest_clf.score(x_test,y_test))
+    explainer = lime_tabular.LimeTabularExplainer(
+        training_data=x_train.values,
+        feature_names=x.columns,
+        class_names=class_names,
+        mode='classification'
+    )
+    
+    for i in range(20):
+        print('status: ', 'benign' if y_test.values[i] else 'malignant')
+        print(dict(zip(x_test.columns, x_test.values[i])))
+
+        explanation = explainer.explain_instance(
+            data_row=x_test.values[i],
+            predict_fn=forest_clf.predict_proba,
+            num_features=9
+        )
+        fig = explanation.as_pyplot_figure()
+        plt.tight_layout()
+        plt.show()
+
+def main():
+
+    x,y = load_file()
+    #print(x,y)
+    train_and_test(x,y)
+    
+if __name__ == "__main__":
+    main()
+
