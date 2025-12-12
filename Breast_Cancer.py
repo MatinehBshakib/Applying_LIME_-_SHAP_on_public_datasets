@@ -6,10 +6,12 @@ import matplotlib.pyplot as plt
 import seaborn as sns 
 
 from sklearn.datasets import fetch_openml
+from sklearn.impute import SimpleImputer
 import xgboost as xgb 
 from sklearn.ensemble import RandomForestClassifier
 #from sklearn.tree import DecisionTreeClassifier, plot_tree
 from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder
 from lime import lime_tabular
 
 import shap 
@@ -22,30 +24,39 @@ def load_file():
     df.replace('?', np.nan, inplace=True)
     x = df.drop(columns=['class'])
     y = df['class']
-  
-    #Convert Dataframe to the list format
-    '''if isinstance(y, pd.DataFrame):
-        y = y.squeeze()  
-    #Convert textual columns to categorical
-    for col in x.select_dtypes(include=['object']).columns : 
-        x[col] = x[col].astype('category')'''
+    #convert object columns to numeric
+    x = x.apply(pd.to_numeric, errors='coerce')
+    #Handle missing values by imputing with column mean
+    imputer = SimpleImputer(strategy='mean')
+    x = pd.DataFrame(imputer.fit_transform(x), columns=x.columns)
+    
     return x,y
 
 def train_and_test(x,y):
-    x_train, x_test, y_train, y_test = train_test_split(x,y, test_size = 0.3)
-    forest_clf = RandomForestClassifier()
+    le = LabelEncoder()
+    y_encoded = le.fit_transform(y)
+    #Create a map to understand which class is which 
+    class_names = list(le.classes_)
+    print (f"Class Mapping: {dict(zip(range(len(class_names)), class_names))}")
+    
+    #Split data
+    x_train, x_test, y_train, y_test = train_test_split(x,y, test_size = 0.3, random_state=42)
+    
+    #Train Model
+    forest_clf = RandomForestClassifier(random_state=42)
     forest_clf.fit(x_train, y_train)
-    label_map = {0: 'Malignant', 1: 'Benign'}
-    class_names = [label_map[int(c)] for c in forest_clf.classes_]
-    print(forest_clf.score(x_test,y_test))
+    print(f"Model Accuracy: {forest_clf.score(x_test,y_test):.4f}")
+    
+    #Initialize LIME Explainer
     explainer = lime_tabular.LimeTabularExplainer(
         training_data=x_train.values,
-        feature_names=x.columns,
+        feature_names=x.columns.tolist(),
         class_names=class_names,
         mode='classification'
     )
     
-    for i in range(20):
+    #Explain first two instances in test set
+    for i in range(2):
         print('status: ', 'benign' if y_test.values[i] else 'malignant')
         print(dict(zip(x_test.columns, x_test.values[i])))
 
@@ -54,6 +65,8 @@ def train_and_test(x,y):
             predict_fn=forest_clf.predict_proba,
             num_features=9
         )
+        
+        # Visualize LIME explanation
         fig = explanation.as_pyplot_figure()
         plt.tight_layout()
         plt.show()
@@ -61,7 +74,6 @@ def train_and_test(x,y):
 def main():
 
     x,y = load_file()
-    #print(x,y)
     train_and_test(x,y)
     
 if __name__ == "__main__":
