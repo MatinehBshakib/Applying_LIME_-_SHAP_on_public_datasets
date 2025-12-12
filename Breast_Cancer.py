@@ -9,7 +9,6 @@ from sklearn.datasets import fetch_openml
 from sklearn.impute import SimpleImputer
 import xgboost as xgb 
 from sklearn.ensemble import RandomForestClassifier
-#from sklearn.tree import DecisionTreeClassifier, plot_tree
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 from lime import lime_tabular
@@ -57,7 +56,8 @@ def train_and_test(x,y):
     
     #Explain first two instances in test set
     for i in range(2):
-        print('status: ', 'benign' if y_test.values[i] else 'malignant')
+        actual_class = class_names[int(y_test.iloc[i])]
+        print(f"Actual Status: {actual_class}")
         print(dict(zip(x_test.columns, x_test.values[i])))
 
         explanation = explainer.explain_instance(
