@@ -9,13 +9,11 @@ from sklearn.datasets import fetch_openml
 from sklearn.impute import SimpleImputer
 import xgboost as xgb 
 from sklearn.ensemble import RandomForestClassifier
-#from sklearn.tree import DecisionTreeClassifier, plot_tree
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
-from lime import lime_tabular
 
-import shap 
-shap.initjs()
+from LIME import LIME as lime
+from SHAP import SHAP as shap
 
 def load_file():
     # Load Breast Cancer Wisconsin (Original) dataset from OpenML
@@ -48,28 +46,10 @@ def train_and_test(x,y):
     print(f"Model Accuracy: {forest_clf.score(x_test,y_test):.4f}")
     
     #Initialize LIME Explainer
-    explainer = lime_tabular.LimeTabularExplainer(
-        training_data=x_train.values,
-        feature_names=x.columns.tolist(),
-        class_names=class_names,
-        mode='classification'
-    )
+    lime.explainer(x_train, x_test, y_test, x.columns.tolist(), class_names, forest_clf)
     
-    #Explain first two instances in test set
-    for i in range(2):
-        print('status: ', 'benign' if y_test.values[i] else 'malignant')
-        print(dict(zip(x_test.columns, x_test.values[i])))
+    
 
-        explanation = explainer.explain_instance(
-            data_row=x_test.values[i],
-            predict_fn=forest_clf.predict_proba,
-            num_features=9
-        )
-        
-        # Visualize LIME explanation
-        fig = explanation.as_pyplot_figure()
-        plt.tight_layout()
-        plt.show()
 
 def main():
 
