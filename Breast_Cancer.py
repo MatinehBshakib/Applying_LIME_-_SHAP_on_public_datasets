@@ -48,8 +48,6 @@ def train_and_test(x,y):
     #Initialize LIME Explainer
     lime.explainer(x_train, x_test, y_test, x.columns.tolist(), class_names, forest_clf)
     
-    
-
 
 def main():
 
@@ -58,4 +56,3 @@ def main():
     
 if __name__ == "__main__":
     main()
-
