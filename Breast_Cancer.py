@@ -48,7 +48,7 @@ def train_and_test(x,y):
     
     return forest_clf, x_train, x_test, y_test, class_names
 
-def explain_with_lime(forest_clf, x_train, x_test, y_test, class_names):
+def explain_with_lime(clf, x_train, x_test, y_test, class_names):
         #Initialize LIME Explainer
     explainer = lime_tabular.LimeTabularExplainer(
         training_data=x_train.values,
@@ -65,7 +65,7 @@ def explain_with_lime(forest_clf, x_train, x_test, y_test, class_names):
 
         explanation = explainer.explain_instance(
             data_row=x_test.values[i],
-            predict_fn=forest_clf.predict_proba,
+            predict_fn=clf.predict_proba,
             num_features=9
         )
         
@@ -73,12 +73,17 @@ def explain_with_lime(forest_clf, x_train, x_test, y_test, class_names):
         fig = explanation.as_pyplot_figure()
         plt.tight_layout()
         plt.show()
-        
+def explain_with_shap(clf, x_train, x_test, y_test, class_names):
+    #shap.kmeans():summerize the data with centroids
+    explainer= shap.KernelExplainer(clf.predict, shap.kmeans(x_train, 10))
+    shap_values = explainer.shap_values(x_test)
+            
 def main():
 
     x,y = load_file()
-    forest_clf, x_train, x_test, y_test, class_names = train_and_test(x,y)
-    explain_with_lime(forest_clf, x_train, x_test, y_test, class_names)
+    clf, x_train, x_test, y_test, class_names = train_and_test(x,y)
+    explain_with_lime(clf, x_train, x_test, y_test, class_names)
+    explain_with_shap(clf, x_train, x_test, y_test, class_names)
     
 if __name__ == "__main__":
     main()
