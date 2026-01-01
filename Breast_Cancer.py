@@ -1,7 +1,6 @@
 import pandas as pd
 import numpy as np 
 
-import matplotlib
 import matplotlib.pyplot as plt
 import seaborn as sns 
 
@@ -11,14 +10,16 @@ import xgboost as xgb
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
+from lime import lime_tabular
 
-from LIME import LIME as lime
-from SHAP import SHAP as shap
+import shap 
+shap.initjs()
 
 def load_file():
     # Load Breast Cancer Wisconsin (Original) dataset from OpenML
     data = fetch_openml(data_id= 43611 , version='active', as_frame=True)
     df = data.frame.copy()
+    # Handle missing values represented by '?'
     df.replace('?', np.nan, inplace=True)
     x = df.drop(columns=['class'])
     y = df['class']
@@ -45,14 +46,40 @@ def train_and_test(x,y):
     forest_clf.fit(x_train, y_train)
     print(f"Model Accuracy: {forest_clf.score(x_test,y_test):.4f}")
     
-    #Initialize LIME Explainer
-    lime.explainer(x_train, x_test, y_test, x.columns.tolist(), class_names, forest_clf)
-    
+    return forest_clf, x_train, x_test, y_test, class_names
 
+def explain_with_lime(forest_clf, x_train, x_test, y_test, class_names):
+        #Initialize LIME Explainer
+    explainer = lime_tabular.LimeTabularExplainer(
+        training_data=x_train.values,
+        feature_names=x_train.columns.tolist(),
+        class_names=class_names,
+        mode='classification'
+    )
+    
+    #Explain first two instances in test set
+    for i in range(2):
+        actual_class = class_names[int(y_test.iloc[i])]
+        print(f"Actual Status: {actual_class}")
+        print(dict(zip(x_test.columns, x_test.values[i])))
+
+        explanation = explainer.explain_instance(
+            data_row=x_test.values[i],
+            predict_fn=forest_clf.predict_proba,
+            num_features=9
+        )
+        
+        # Visualize LIME explanation
+        fig = explanation.as_pyplot_figure()
+        plt.tight_layout()
+        plt.show()
+        
 def main():
 
     x,y = load_file()
-    train_and_test(x,y)
+    forest_clf, x_train, x_test, y_test, class_names = train_and_test(x,y)
+    explain_with_lime(forest_clf, x_train, x_test, y_test, class_names)
     
 if __name__ == "__main__":
     main()
+
