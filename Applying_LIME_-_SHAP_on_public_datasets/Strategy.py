@@ -86,6 +86,12 @@ class HierarchicalStrategy(BaseStrategy):
                   if len(pos_indices) > 0 and spec_model:
                         spec_pred = spec_model.predict(x_test.iloc[pos_indices])
                         final_pred.iloc[pos_indices] = spec_pred
+                  
+                  print(f"Visualizing Explanations for {category} Gatekeeper:")
+                  self.run_shap(gate_model, x_train, x_test, output_filename=f"shap_{category}_gatekeepr.csv")
+                  
+                  results[category] = (gate_model, spec_model)
+            return results
 
                   
                    
