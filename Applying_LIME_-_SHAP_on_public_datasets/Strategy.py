@@ -4,6 +4,10 @@ from sklearn.model_selection import train_test_split
 import xgboost as xgb
 import sklearn.ensemble as RandomForestClassifier
 from Explainability import Explainability
+from sklearn.metrics import accuracy_score
+from sklearn.multioutput import MultiOutputClassifier
+from pandas import pd
+import numpy as np
 
 class BaseStrategy(Explainability):
       def execute(self, x, y):
@@ -32,3 +36,56 @@ class SingleOutput(BaseStrategy):
             self.run_shap(clf, x_train, x_test)
             self.run_lime(clf, x_train, x_test, class_names)
             return clf
+class HierarchicalStrategy(BaseStrategy):
+      def __init__(self, group_mapping, algo='xgb'):
+            self.group_mapping = group_mapping
+            self.algo = algo
+            
+      def execute(self, x, y):
+            x_train, x_test, y_train, y_test = train_test_split(x, y, test_size = 0.3, random_state=42)
+            results = {}
+            for category, subtypes in self.group_mapping.items():
+                  print(f"\n>>> PROCESSING FLOW: {category}")
+                  valid_subtypes = [c for c in subtypes if c in y_train.columns]
+                  if not valid_subtypes:
+                        print(f"Skipping {category}: columns not found in dataset")
+                        continue
+                  
+                  #Level 1: Gatekeeper
+                  y_train_gate = y_train[valid_subtypes].max(axis=1) #create parent label
+                  y_test_gate = y_test[valid_subtypes].max(axis=1)
+                  
+                  print(f"Training Gatekeeper for {category}...")
+                  if self.algo == 'xgb':
+                        gate_model = xgb.XGBClassifier(use_label_encoder=False, eval_metric='logloss', random_state=42)
+                  else:
+                        gate_model = RandomForestClassifier(random_state=42)
+                  gate_model.fit(x_train, y_train_gate)
+                  #Evaluate 
+                  gate_pred = gate_model.predict(x_test)
+                  print(f"Gatekeeper Accuracy: {accuracy_score(y_test_gate, gate_pred):.4f}")
+                  #Level 2: Specialist 
+                  mask_train = y_train_gate == 1
+                  x_spec_train = x_train[mask_train] # Select rows where gatekeeper predicts 1
+                  y_spec_train = y_train.loc[mask_train, valid_subtypes] # Corresponding subtypes
+                  
+                  # Base model for MultiOutput
+                  if self.algo == 'xgb':
+                        base = xgb.XGBClassifier(use_label_encoder=False, eval_metric='logloss', random_state=42)
+                  else:
+                        base = RandomForestClassifier(random_state=42)
+                  
+                  spec_model = MultiOutputClassifier(base)
+                  spec_model.fit(x_spec_train, y_spec_train)
+                  
+                  #Evaluate Specialist
+                  #conditional prediction on gatekeeper positive
+                  final_pred = pd.DataFrame(0, index=y_test.index, columns=valid_subtypes)
+                  pos_indices = np.where(gate_pred == 1)[0]
+
+                  if len(pos_indices) > 0 and spec_model:
+                        spec_pred = spec_model.predict(x_test.iloc[pos_indices])
+                        final_pred.iloc[pos_indices] = spec_pred
+
+                  
+                   
