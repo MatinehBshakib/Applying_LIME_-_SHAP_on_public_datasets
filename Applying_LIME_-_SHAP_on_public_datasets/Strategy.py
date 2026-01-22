@@ -1,12 +1,12 @@
 
-from sklearn.calibration import LabelEncoder
+from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import train_test_split
 import xgboost as xgb
-import sklearn.ensemble as RandomForestClassifier
+from sklearn.ensemble import RandomForestClassifier
 from Explainability import Explainability
 from sklearn.metrics import accuracy_score
 from sklearn.multioutput import MultiOutputClassifier
-from pandas import pd
+import pandas as pd
 import numpy as np
 
 class BaseStrategy(Explainability):
@@ -20,7 +20,7 @@ class SingleOutput(BaseStrategy):
             y_encoded = le.fit_transform(y)
             class_names = list(le.classes_) # Get original class names
             class_names = [str(name) for name in class_names] # Ensure all class names are strings for LIME
-            print(f"Class Mapping: {dict(zip(len(class_names), class_names))}")
+            print(f"Class Mapping: {dict(zip(range(len(class_names)), class_names))}")
             
             #Split the data
             x_train, x_test, y_train, y_test = train_test_split(x, y_encoded, test_size=0.3, random_state=42)
@@ -83,12 +83,16 @@ class HierarchicalStrategy(BaseStrategy):
                   final_pred = pd.DataFrame(0, index=y_test.index, columns=valid_subtypes)
                   pos_indices = np.where(gate_pred == 1)[0]
 
-                  if len(pos_indices) > 0 and spec_model:
-                        spec_pred = spec_model.predict(x_test.iloc[pos_indices])
-                        final_pred.iloc[pos_indices] = spec_pred
-                  
-                  print(f"Visualizing Explanations for {category} Gatekeeper:")
-                  self.run_shap(gate_model, x_train, x_test, output_filename=f"shap_{category}_gatekeepr.csv")
+                  if len(pos_indices) > 0 and spec_model is not None:
+                        x_test_spec = x_test.iloc[pos_indices] # Subset of test data relevant to specialist
+                        # Iterate through each sub-category column and its corresponding trained estimator
+                        for idx, sub_col in enumerate(valid_subtypes):
+                              print(f"Evaluating Specialist for {sub_col}...")
+                              estimator = spec_model.estimators_[idx] # Extract the specific model for this sub-category
+                              self.run_shap(estimator, 
+                                            x_spec_train, 
+                                            x_test_spec, 
+                                            output_filename=f"shap_explanation_{category}_{sub_col}.csv")
                   
                   results[category] = (gate_model, spec_model)
             return results
