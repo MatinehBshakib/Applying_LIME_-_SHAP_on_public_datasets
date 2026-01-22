@@ -1,6 +1,7 @@
 from lime import lime_tabular
 import shap
 import pandas as pd
+import numpy as np
 
 class Explainability:
       
