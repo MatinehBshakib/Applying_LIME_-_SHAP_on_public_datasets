@@ -4,7 +4,7 @@ import pandas as pd
 
 class Explainability:
       
-      def run_lime(clf, x_train, x_test, class_names, output_filename="lime_explanation_results.csv"):
+      def run_lime(self,clf, x_train, x_test, class_names, output_filename="lime_explanation_results.csv"):
             def predict_fn_wrapper(data_numpy):
                   if len(data_numpy.shape) == 1:
                         data_numpy = data_numpy.reshape(1, -1)
@@ -33,7 +33,7 @@ class Explainability:
                         num_features=n_features
                   )  
                   #extract values
-                  base_value = exp.intercept[1]  # Base value for positive class
+                  base_value = exp.intercept[1, 0.0]  # Base value for positive class
                   local_weight = dict(exp.local_exp[1])  # Local weights for positive class
                   current_id = x_test.index[i]  # Get the original index of the instance
                   
@@ -55,13 +55,22 @@ class Explainability:
             print(f"LIME explanations saved to {output_filename}")
             return sort_lime_df
                         
-      def run_shap(clf, x_train, x_test, output_filename="shap_explanation_results.csv"):
+      def run_shap(self,clf, x_train, x_test, output_filename="shap_explanation_results.csv"):
             explainer= shap.TreeExplainer(clf) # Use TreeExplainer for tree-based models
             shap_values_all= explainer(x_test)
             # The output shape is typically (rows, features, classes). 
             # We select [:, :, 1] to get the explanation for the "Positive" class.
-            shap_values = shap_values_all.values[:,:,1]
-            base_values = shap_values_all.base_values[:,1]  # Base values for positive class
+            if len(shap_values_all.values.shape) == 2: #handle xgboost single output case
+                  shap_values = shap_values_all.values
+                  if hasattr(shap_values_all.base_values, "__iter__"):
+                        base_values = shap_values_all.base_values
+                  else:
+                        base_values = np.repeat(shap_values_all.base_values, len(x_test))
+            else:
+                  # handle random forest multi-class case
+                  shap_values = shap_values_all.values[:,:,1]
+                  base_values = shap_values_all.base_values[:,1] # Base values for positive class
+            
             shap_rows = []
             feature_names = x_train.columns.tolist()
             
