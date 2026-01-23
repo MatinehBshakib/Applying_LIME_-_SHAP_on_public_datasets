@@ -34,7 +34,7 @@ class Explainability:
                         num_features=n_features
                   )  
                   #extract values
-                  base_value = exp.intercept[1, 0.0]  # Base value for positive class
+                  base_value = exp.intercept[1]  # Base value for positive class
                   local_weight = dict(exp.local_exp[1])  # Local weights for positive class
                   current_id = x_test.index[i]  # Get the original index of the instance
                   
