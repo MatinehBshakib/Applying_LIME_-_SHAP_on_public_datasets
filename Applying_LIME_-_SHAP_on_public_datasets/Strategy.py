@@ -42,6 +42,9 @@ class HierarchicalStrategy(BaseStrategy):
             self.algo = algo
             
       def execute(self, x, y):
+            if not isinstance(y, pd.DataFrame):
+                  raise ValueError("Target y must be a DataFrame for Hierarchical Strategy")    
+            #Split the data
             x_train, x_test, y_train, y_test = train_test_split(x, y, test_size = 0.3, random_state=42)
             results = {}
             for category, subtypes in self.group_mapping.items():
@@ -75,8 +78,12 @@ class HierarchicalStrategy(BaseStrategy):
                   else:
                         base = RandomForestClassifier(random_state=42)
                   
-                  spec_model = MultiOutputClassifier(base)
-                  spec_model.fit(x_spec_train, y_spec_train)
+                  spec_model = None  # Initialize as None
+                  if len(x_spec_train) > 0:
+                        spec_model = MultiOutputClassifier(base)
+                        spec_model.fit(x_spec_train, y_spec_train)
+                  else:
+                        print(f"Warning: No positive training examples for {category}.")
                   
                   #Evaluate Specialist
                   #conditional prediction on gatekeeper positive
@@ -84,16 +91,25 @@ class HierarchicalStrategy(BaseStrategy):
                   pos_indices = np.where(gate_pred == 1)[0]
 
                   if len(pos_indices) > 0 and spec_model is not None:
+                        spec_pred = spec_model.predict(x_test.iloc[pos_indices])
+                        final_pred.iloc[pos_indices] = spec_pred
+                        
                         x_test_spec = x_test.iloc[pos_indices] # Subset of test data relevant to specialist
                         # Iterate through each sub-category column and its corresponding trained estimator
                         for idx, sub_col in enumerate(valid_subtypes):
-                              print(f"Evaluating Specialist for {sub_col}...")
                               estimator = spec_model.estimators_[idx] # Extract the specific model for this sub-category
+                              print(f"Visualizing SHAP for Specialist Subtype {sub_col}...")
                               self.run_shap(estimator, 
                                             x_spec_train, 
                                             x_test_spec, 
-                                            output_filename=f"shap_explanation_{category}_{sub_col}.csv")
-                  
+                                            output_filename=f"shap_{category}_{sub_col}.csv")
+                              print(f"Visualizing LIME for Specialist Subtype {sub_col}...")
+                              sub_class_names = [f"No_{sub_col}", sub_col]
+                              self.run_lime(estimator, 
+                                            x_spec_train, 
+                                            x_test_spec, 
+                                            class_names= sub_class_names,
+                                            output_filename=f"lime_{category}_{sub_col}.csv")
                   results[category] = (gate_model, spec_model)
             return results
 
