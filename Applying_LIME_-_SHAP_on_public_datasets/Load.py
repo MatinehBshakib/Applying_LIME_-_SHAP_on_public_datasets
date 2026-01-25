@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 from sklearn.impute import SimpleImputer
 from sklearn.datasets import fetch_openml
+from sklearn.model_selection import train_test_split
       
 class LoadData:
       def advanced_imputation(self, x, drop_threshold=0.5):
@@ -35,19 +36,60 @@ class LoadData:
                   )        
           return x
     
-      def load_dataset(self):
+      def load_dataset(self, data_id, target_cols=None):
             #Load the dataset from OpenML
-            data = fetch_openml(data_id=46591, version='active', as_frame=True) 
+            data = fetch_openml(data_id=data_id, version='active', as_frame=True) 
             df = data.frame.copy()
             #Drop id column
             if 'id' in df.columns:
                df.drop(columns=['id'], inplace=True)
               
             df.replace(['?', 'NA', '', 'null'], np.nan, inplace=True)
-            #Get the exact target column name
-            target_name = data.default_target_attribute
-            #Separate features and target
-            X = df.drop(columns=[target_name])
-            y = df[target_name]
+            if target_cols:
+                  missing_targets = [col for col in target_cols if col not in df.columns]
+                  if missing_targets:
+                      raise ValueError(f"Requested target columns not found in dataset: {missing_targets}")
+                  y = df[target_cols].copy()
+                  X = df.drop(columns=target_cols)
+                  y = y.apply(pd.to_numeric, errors='coerce').fillna(0).astype(int)
+            else:
+                  #Get the exact target column name
+                  target_name = data.default_target_attribute
+                  #Separate features and target
+                  X = df.drop(columns=[target_name])
+                  y = df[target_name]
             return self.advanced_imputation(X), y
             
+
+      def export_data_for_rulex(self, x, y, test_size=0.3, filename="rulex_ready_data.csv"):
+                  print(f"Preparing data for Rulex export (Test size: {test_size})...")
+                  
+                  # 1. Perform the split here (Single Source of Truth)
+                  # This replaces the split that used to be in Strategy.py
+                  x_train, x_test, y_train, y_test = train_test_split(
+                        x, y, test_size=test_size, random_state=42
+                  )
+                  
+                  # 2. Prepare export DataFrames
+                  if isinstance(y_train, pd.Series):
+                        y_train_df = y_train.to_frame(name='Target')
+                        y_test_df = y_test.to_frame(name='Target')
+                  else:
+                        y_train_df = y_train
+                        y_test_df = y_test
+
+                  # Join features and targets
+                  train_df = pd.concat([x_train, y_train_df], axis=1)
+                  test_df = pd.concat([x_test, y_test_df], axis=1)
+
+                  # Add labels
+                  train_df['Set_Type'] = 'Train'
+                  test_df['Set_Type'] = 'Test'
+                  
+                  # Save to CSV
+                  full_df = pd.concat([train_df, test_df])
+                  full_df.to_csv(filename, index=False)
+                  print(f"Data saved to {filename}. Train: {len(train_df)}, Test: {len(test_df)}")
+                  
+                  # 3. Return the splits to be used by Strategy
+                  return x_train, x_test, y_train, y_test
