@@ -10,21 +10,19 @@ import pandas as pd
 import numpy as np
 
 class BaseStrategy(Explainability):
-      def execute(self, x, y):
+      def execute(self, x_train, x_test, y_train, y_test):
             raise NotImplementedError()
 class SingleOutput(BaseStrategy):
       def __init__(self, algo='rf'):
             self.algo = algo
-      def execute(self, x, y):
-            le = LabelEncoder()
-            y_encoded = le.fit_transform(y)
-            class_names = list(le.classes_) # Get original class names
-            class_names = [str(name) for name in class_names] # Ensure all class names are strings for LIME
-            print(f"Class Mapping: {dict(zip(range(len(class_names)), class_names))}")
-            
-            #Split the data
-            x_train, x_test, y_train, y_test = train_test_split(x, y_encoded, test_size=0.3, random_state=42)
-            
+      def execute(self, x_train, x_test, y_train, y_test):
+            # Ensure y is 1D for Single Output
+        if isinstance(y_train, pd.DataFrame):
+            if y_train.shape[1] == 1:
+                y_train = y_train.iloc[:, 0]
+            else:
+                raise ValueError("SingleOutput strategy expects a 1D target (Series), but got a multi-column DataFrame.")
+            class_names = ["0", "1"]
             #Train the model 
             if self.algo == 'xgb':
                   clf = xgb.XGBClassifier(use_label_encoder=False, eval_metric='logloss', random_state=42)
@@ -41,11 +39,10 @@ class HierarchicalStrategy(BaseStrategy):
             self.group_mapping = group_mapping
             self.algo = algo
             
-      def execute(self, x, y):
-            if not isinstance(y, pd.DataFrame):
+      def execute(self, x_train, x_test, y_train, y_test):
+            if not isinstance(y_train, pd.DataFrame):
                   raise ValueError("Target y must be a DataFrame for Hierarchical Strategy")    
             #Split the data
-            x_train, x_test, y_train, y_test = train_test_split(x, y, test_size = 0.3, random_state=42)
             results = {}
             for category, subtypes in self.group_mapping.items():
                   print(f"\n>>> PROCESSING FLOW: {category}")
@@ -79,9 +76,11 @@ class HierarchicalStrategy(BaseStrategy):
                         base = RandomForestClassifier(random_state=42)
                   
                   spec_model = None  # Initialize as None
-                  if len(x_spec_train) > 0:
+                  if len(x_spec_train) > 5:
+                        base = xgb.XGBClassifier(use_label_encoder=False, eval_metric='logloss', random_state=42) if self.algo == 'xgb' else RandomForestClassifier(random_state=42)
                         spec_model = MultiOutputClassifier(base)
                         spec_model.fit(x_spec_train, y_spec_train)
+                        
                   else:
                         print(f"Warning: No positive training examples for {category}.")
                   
@@ -110,8 +109,56 @@ class HierarchicalStrategy(BaseStrategy):
                                             x_test_spec, 
                                             class_names= sub_class_names,
                                             output_filename=f"lime_{category}_{sub_col}.csv")
+                  else:
+                        print(f"Warning: No positive predictions from Gatekeeper for {category}, skipping Specialist evaluation.")
                   results[category] = (gate_model, spec_model)
             return results
 
+class MultiLabelStrategy(BaseStrategy):
+      def __init__(self, algo='xgb'):
+            self.algo = algo
+            
+      def execute(self, x_train, x_test, y_train, y_test):
+            # Validation: Ensure y is a multi-column DataFrame
+            if not isinstance(y_train, pd.DataFrame) or y_train.shape[1] < 2:
+                  raise ValueError("MultiLabelStrategy requires a multi-column DataFrame as target y.")
+            
+            print(f"Training 'Flat' Multi-Label Model on targets: {y_train.columns.tolist()}")
+            
+            # Define Base Model
+            if self.algo == 'xgb':
+                  base = xgb.XGBClassifier(use_label_encoder=False, eval_metric='logloss', random_state=42)
+            else:
+                  base = RandomForestClassifier(random_state=42)
+            
+            # Wrap in MultiOutputClassifier (Fits one model per target column)
+            clf = MultiOutputClassifier(base)
+            clf.fit(x_train, y_train)
+            
+            # global accuracy (subset accuracy: requires all labels for a row to be correct)
+            global_acc = clf.score(x_test, y_test)
+            print(f"Global Subset Accuracy: {global_acc:.4f}")
+            # MultiOutputClassifier stores individual models in clf.estimators_
+            for i, col_name in enumerate(y_train.columns):
+                  estimator = clf.estimators_[i]
                   
-                   
+                  print(f"\n>>> Explaining Target: {col_name}")
+                  
+                  # Calculate individual accuracy for this specific target
+                  y_test_col = y_test.iloc[:, i]
+                  y_pred_col = estimator.predict(x_test)
+                  acc = accuracy_score(y_test_col, y_pred_col)
+                  print(f"    Accuracy for {col_name}: {acc:.4f}")
+                  
+                  # Generate SHAP
+                  # We pass the specific estimator for this column, not the whole wrapper
+                  self.run_shap(estimator, x_train, x_test, 
+                                output_filename=f"shap_flat_{col_name}.csv")
+                  
+                  # Generate LIME
+                  class_names = [f"No_{col_name}", str(col_name)]
+                  self.run_lime(estimator, x_train, x_test, class_names, 
+                                output_filename=f"lime_flat_{col_name}.csv")
+                  
+            return clf
+               

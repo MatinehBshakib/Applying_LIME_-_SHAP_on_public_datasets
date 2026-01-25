@@ -88,6 +88,10 @@ class LoadData:
                   
                   # Save to CSV
                   full_df = pd.concat([train_df, test_df])
+                  
+                  full_df.index.name = 'id'
+                  full_df.reset_index(inplace=True)
+                  
                   full_df.to_csv(filename, index=False)
                   print(f"Data saved to {filename}. Train: {len(train_df)}, Test: {len(test_df)}")
                   

@@ -27,34 +27,41 @@ class Explainability:
             
             #Iterate through each instance in the test set
             for i in range(total_instances):
-                  exp= explainer.explain_instance(
-                        data_row=x_test.values[i],
-                        predict_fn=predict_fn_wrapper,
-                        labels=[1], # Assuming binary classification with positive class as 1
-                        num_features=n_features
-                  )  
-                  #extract values
-                  base_value = exp.intercept[1]  # Base value for positive class
-                  local_weight = dict(exp.local_exp[1])  # Local weights for positive class
-                  current_id = x_test.index[i]  # Get the original index of the instance
+                  try:
+                        exp= explainer.explain_instance(
+                              data_row=x_test.values[i],
+                              predict_fn=predict_fn_wrapper,
+                              labels=[1], # Assuming binary classification with positive class as 1
+                              num_features=n_features
+                        )  
+                        #extract values
+                        base_value = exp.intercept[1]  # Base value for positive class
+                        local_weight = dict(exp.local_exp[1])  # Local weights for positive class
+                        current_id = x_test.index[i]  # Get the original index of the instance
                   
-                  for feat_idx, feat_name in enumerate(x_train.columns):
-                        feat_val = x_test.values[i][feat_idx]
-                        lime_value = local_weight.get(feat_idx, 0.0)
-                        lime_rows.append({
-                              "id": current_id,
-                              "feature": feat_name,
-                              "feature_value": feat_val,
-                              "base_value": base_value,
-                              "lime_value": lime_value
-                        })
-            
+                        for feat_idx, feat_name in enumerate(x_train.columns):
+                              feat_val = x_test.values[i][feat_idx]
+                              lime_value = local_weight.get(feat_idx, 0.0)
+                              lime_rows.append({
+                                    "id": current_id,
+                                    "feature": feat_name,
+                                    "feature_value": feat_val,
+                                    "base_value": base_value,
+                                    "lime_value": lime_value
+                              })
+                  except Exception as e:
+                        print(f"LIME failed for instance {i}: {e}")
+                        continue
             #convert to dataframe and save to csv
             lime_df = pd.DataFrame(lime_rows)
-            sort_lime_df = lime_df.sort_values(by=["id", "lime_value"], ascending=[True, False])
-            sort_lime_df.to_csv(output_filename, index=False)
-            print(f"LIME explanations saved to {output_filename}")
-            return sort_lime_df
+            if not lime_df.empty:
+                  sort_lime_df = lime_df.sort_values(by=["id", "feature"], ascending=[True, True])
+                  sort_lime_df.to_csv(output_filename, index=False)
+                  print(f"LIME explanations saved to {output_filename}")
+                  return sort_lime_df
+            else:
+                  print("No LIME explanations were generated.")
+                  return pd.DataFrame()  # Return empty DataFrame if no explanations were generated
                         
       def run_shap(self,clf, x_train, x_test, output_filename="shap_explanation_results.csv"):
             explainer= shap.TreeExplainer(clf) # Use TreeExplainer for tree-based models
@@ -63,14 +70,14 @@ class Explainability:
             # We select [:, :, 1] to get the explanation for the "Positive" class.
             if len(shap_values_all.values.shape) == 2: #handle xgboost single output case
                   shap_values = shap_values_all.values
-                  if hasattr(shap_values_all.base_values, "__iter__"):
-                        base_values = shap_values_all.base_values
-                  else:
-                        base_values = np.repeat(shap_values_all.base_values, len(x_test))
+                  base_values = shap_values_all.base_values
             else:
                   # handle random forest multi-class case
                   shap_values = shap_values_all.values[:,:,1]
                   base_values = shap_values_all.base_values[:,1] # Base values for positive class
+            # Normalize base_values to be a list/array of length N
+            if not hasattr(base_values, "__iter__"):
+                  base_values = np.repeat(base_values, len(x_test))
             
             shap_rows = []
             feature_names = x_train.columns.tolist()
@@ -89,7 +96,7 @@ class Explainability:
                         })
             #convert to dataframe
             shap_df = pd.DataFrame(shap_rows)
-            sort_shap_df = shap_df.sort_values(by=["id", "shap_value"], ascending=[True, False])
+            sort_shap_df = shap_df.sort_values(by=["id", "feature"], ascending=[True, True])
             sort_shap_df.to_csv(output_filename, index=False)
             print(f"SHAP explanations saved to {output_filename}.")
             return sort_shap_df
