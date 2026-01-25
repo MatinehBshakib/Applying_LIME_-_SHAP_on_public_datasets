@@ -5,6 +5,13 @@ from sklearn.datasets import fetch_openml
       
 class LoadData:
       def advanced_imputation(self, x, drop_threshold=0.5):
+          x = x.copy()
+          for col in x.columns:
+            if x[col].dtype == 'object':
+                  # Try to convert, if it fails, check if it was mostly numbers
+                  temp_col = pd.to_numeric(x[col], errors='coerce')
+                  if temp_col.isna().mean() < drop_threshold: # If valid numbers remain
+                        x[col] = temp_col
           # Drop columns with missing value percentage above the threshold
           x=x.drop(columns=x.columns[x.isnull().mean()>drop_threshold])
           # Separate numerical and categorical columns
@@ -17,20 +24,22 @@ class LoadData:
           # Impute categorical columns with mode
           if len(cat_cols) > 0:
                   imputer_cat = SimpleImputer(strategy='most_frequent')
-                  x[cat_cols] = imputer_cat.fit_transform(x[cat_cols])
-                  
+                  x[cat_cols] = imputer_cat.fit_transform(x[cat_cols])         
           return x
+    
       def load_dataset(self):
             #Load the dataset from OpenML
             data = fetch_openml(data_id=46591, version='active', as_frame=True) 
             df = data.frame.copy()
-            #drop id column
+            #Drop id column
             if 'id' in df.columns:
-               df = df.drop(columns=['id'], inplace=True)
-               
-            df.replace('?', np.nan, inplace=True)
-            X = df.drop(columns=['Class']).apply(pd.to_numeric, errors='coerce')
-            y = df['Class']
-            
+               df.drop(columns=['id'], inplace=True)
+              
+            df.replace(['?', 'NA', '', 'null'], np.nan, inplace=True)
+            #Get the exact target column name
+            target_name = data.default_target_attribute
+            #Separate features and target
+            X = df.drop(columns=[target_name])
+            y = df[target_name]
             return self.advanced_imputation(X), y
             
