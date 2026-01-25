@@ -20,11 +20,19 @@ class LoadData:
           # Impute numerical columns with mean
           if len(num_cols) > 0:
                   imputer_num = SimpleImputer(strategy='mean')
-                  x[num_cols] = imputer_num.fit_transform(x[num_cols])
+                  x[num_cols] = pd.DataFrame(
+                        imputer_num.fit_transform(x[num_cols]),
+                        columns=num_cols,
+                        index=x.index
+                  )
           # Impute categorical columns with mode
           if len(cat_cols) > 0:
                   imputer_cat = SimpleImputer(strategy='most_frequent')
-                  x[cat_cols] = imputer_cat.fit_transform(x[cat_cols])         
+                  x[cat_cols] = pd.DataFrame(
+                        imputer_cat.fit_transform(x[cat_cols]),
+                        columns=cat_cols,
+                        index=x.index
+                  )        
           return x
     
       def load_dataset(self):
