@@ -55,7 +55,9 @@ class Explainability:
             #convert to dataframe and save to csv
             lime_df = pd.DataFrame(lime_rows)
             if not lime_df.empty:
-                  sort_lime_df = lime_df.sort_values(by=["id", "feature"], ascending=[True, True])
+                  lime_df["feature_lower"] = lime_df["feature"].str.lower() # Create a temporary column that is all lowercase just for sorting
+                  sort_lime_df = lime_df.sort_values(by=["id", "feature_lower"], ascending=[True, True])
+                  sort_lime_df = sort_lime_df.drop(columns=["feature_lower"])
                   sort_lime_df.to_csv(output_filename, index=False)
                   print(f"LIME explanations saved to {output_filename}")
                   return sort_lime_df
@@ -96,7 +98,9 @@ class Explainability:
                         })
             #convert to dataframe
             shap_df = pd.DataFrame(shap_rows)
-            sort_shap_df = shap_df.sort_values(by=["id", "feature"], ascending=[True, True])
+            shap_df["feature_lower"] = shap_df["feature"].str.lower() # Create a temporary column that is all lowercase just for sorting
+            sort_shap_df = shap_df.sort_values(by=["id", "feature_lower"], ascending=[True, True])
+            sort_shap_df = sort_shap_df.drop(columns=["feature_lower"])
             sort_shap_df.to_csv(output_filename, index=False)
             print(f"SHAP explanations saved to {output_filename}.")
             return sort_shap_df
