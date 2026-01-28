@@ -33,7 +33,10 @@ class LoadData:
                         imputer_cat.fit_transform(x[cat_cols]),
                         columns=cat_cols,
                         index=x.index
-                  )        
+                  )     
+                  for col in cat_cols:
+                      # Convert column to category type, then to integer codes
+                      x[col] = x[col].astype('category').cat.codes   
           return x
     
       def load_dataset(self, data_id, target_cols=None):
