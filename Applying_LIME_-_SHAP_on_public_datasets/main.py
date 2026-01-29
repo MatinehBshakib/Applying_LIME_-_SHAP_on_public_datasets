@@ -2,6 +2,7 @@ from Load import LoadData
 from sklearn.preprocessing import LabelEncoder
 from Strategy import MultiLabelStrategy, HierarchicalStrategy
 from Config import MycordinalConfig as config
+from PostProcessor import PostProcessor
 def main():
       loader = LoadData()
       # Pass a list of multiple columns
@@ -14,6 +15,9 @@ def main():
             group_mapping=config.Hierarchy_mapping,
             algo='xgb')
       strategy.execute(x_train, x_test, y_train, y_test)
+      
+      aggregator = PostProcessor()
+      aggregator.aggregate_and_clean()
 
 if __name__ == "__main__":
     main()

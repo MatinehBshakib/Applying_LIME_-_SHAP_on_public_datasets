@@ -1,0 +1,77 @@
+import pandas as pd
+import os
+import glob
+
+class PostProcessor:
+    def aggregate_and_clean(self, output_filename="final_explanation_results.csv"):
+        print("\n>>> Starting Aggregation and Cleanup...")
+        
+        # 1. Find all SHAP files (we use these as the anchor)
+        shap_files = glob.glob("shap_*.csv")
+        
+        if not shap_files:
+            print("No explanation files found to aggregate.")
+            return
+
+        all_data = []
+
+        for shap_path in shap_files:
+            # Determine the corresponding LIME filename
+            # Example: shap_mech_cols_OTEK_LANC.csv -> lime_mech_cols_OTEK_LANC.csv
+            lime_path = shap_path.replace("shap_", "lime_")
+            
+            try:
+                # 2. Load Data
+                shap_df = pd.read_csv(shap_path)
+                
+                # Check if corresponding LIME file exists
+                if os.path.exists(lime_path):
+                    lime_df = pd.read_csv(lime_path)
+                    
+                    # 3. Merge SHAP and LIME
+                    # We merge on 'id' and 'feature'. 
+                    # We only take 'lime_value' and 'base_value' (renamed) from the LIME file.
+                    merged_df = pd.merge(
+                        shap_df, 
+                        lime_df[['id', 'feature', 'lime_value', 'base_value']], 
+                        on=['id', 'feature'], 
+                        how='left',
+                        suffixes=('_shap', '_lime')
+                    )
+                else:
+                    print(f"Warning: LIME file not found for {shap_path}. Keeping SHAP only.")
+                    merged_df = shap_df
+                    merged_df['lime_value'] = 0 # Fill missing LIME with 0
+                    merged_df.rename(columns={'base_value': 'base_value_shap'}, inplace=True)
+
+                # 4. Extract Context/Target Name from filename
+                # Remove "shap_" prefix and ".csv" suffix
+                context_name = os.path.basename(shap_path).replace("shap_", "").replace(".csv", "")
+                merged_df['Target_Context'] = context_name
+                
+                all_data.append(merged_df)
+
+                # 5. Delete Original Files
+                os.remove(shap_path)
+                if os.path.exists(lime_path):
+                    os.remove(lime_path)
+                print(f"Processed and deleted: {context_name}")
+
+            except Exception as e:
+                print(f"Error processing {shap_path}: {e}")
+
+        # 6. Save Final Master File
+        if all_data:
+            final_df = pd.concat(all_data, ignore_index=True)
+            
+            # Reorder columns for readability
+            cols = ['id', 'Target_Context', 'feature', 'feature_value', 
+                    'shap_value', 'lime_value', 'base_value_shap', 'base_value_lime']
+            # Only select columns that actually exist in the dataframe
+            final_cols = [c for c in cols if c in final_df.columns]
+            final_df = final_df[final_cols]
+            
+            final_df.to_csv(output_filename, index=False)
+            print(f"\nSUCCESS: All explanations merged into '{output_filename}'.")
+        else:
+            print("No data collected.")
