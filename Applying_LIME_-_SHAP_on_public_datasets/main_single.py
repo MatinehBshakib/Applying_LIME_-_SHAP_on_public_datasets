@@ -18,7 +18,7 @@ def main():
     # 3. Split data 
     x_train, x_test, y_train, y_test = loader.export_data_for_rulex(X, y_final)
     # 4. Execute Strategy
-    strategy = SingleOutput(algo='xgb')
+    strategy = SingleOutput(algo='rf')
     strategy.execute(x_train, x_test, y_train, y_test)
     
     aggregator = PostProcessor()

@@ -64,8 +64,7 @@ class LoadData:
       def export_data_for_rulex(self, x, y, test_size=0.3, filename="rulex_ready_data.csv"):
                   print(f"Preparing data for Rulex export (Test size: {test_size})...")
                   
-                  # 1. Perform the split here (Single Source of Truth)
-                  # This replaces the split that used to be in Strategy.py
+                  # 1. Perform the split 
                   x_train, x_test, y_train, y_test = train_test_split(
                         x, y, test_size=test_size, random_state=42
                   )
