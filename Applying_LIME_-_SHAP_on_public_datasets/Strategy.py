@@ -16,15 +16,14 @@ class SingleOutput(BaseStrategy):
             self.algo = algo
       def execute(self, x_train, x_test, y_train, y_test):
             # Ensure y is 1D for Single Output
-        if isinstance(y_train, pd.DataFrame):
-            if y_train.shape[1] == 1:
-                y_train = y_train.iloc[:, 0]
-            else:
-                raise ValueError("SingleOutput strategy expects a 1D target (Series), but got a multi-column DataFrame.")
+            if isinstance(y_train, pd.DataFrame):
+                  y_train = y_train.iloc[:, 0]
+            if isinstance(y_test, pd.DataFrame):
+                  y_test = y_test.iloc[:, 0]
             class_names = ["0", "1"]
             #Train the model 
             if self.algo == 'xgb':
-                  clf = xgb.XGBClassifier(use_label_encoder=False, eval_metric='logloss', random_state=42)
+                  clf = xgb.XGBClassifier(eval_metric='logloss', random_state=42, base_score=0.5)
             else:
                   clf = RandomForestClassifier(random_state=42)
             clf.fit(x_train, y_train)

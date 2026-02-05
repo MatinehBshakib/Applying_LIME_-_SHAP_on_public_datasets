@@ -33,10 +33,7 @@ class LoadData:
                         imputer_cat.fit_transform(x[cat_cols]),
                         columns=cat_cols,
                         index=x.index
-                  )     
-                  for col in cat_cols:
-                      # Convert column to category type, then to integer codes
-                      x[col] = x[col].astype('category').cat.codes   
+                  )        
           return x
     
       def load_dataset(self, data_id, target_cols=None):
@@ -63,3 +60,39 @@ class LoadData:
                   y = df[target_name]
             return self.advanced_imputation(X), y
             
+
+      def export_data_for_rulex(self, x, y, test_size=0.3, filename="rulex_ready_data.csv"):
+                  print(f"Preparing data for Rulex export (Test size: {test_size})...")
+                  
+                  # 1. Perform the split here (Single Source of Truth)
+                  # This replaces the split that used to be in Strategy.py
+                  x_train, x_test, y_train, y_test = train_test_split(
+                        x, y, test_size=test_size, random_state=42
+                  )
+                  
+                  # 2. Prepare export DataFrames
+                  if isinstance(y_train, pd.Series):
+                        y_train_df = y_train.to_frame(name='Target')
+                        y_test_df = y_test.to_frame(name='Target')
+                  else:
+                        y_train_df = y_train
+                        y_test_df = y_test
+
+                  # Join features and targets
+                  train_df = pd.concat([x_train, y_train_df], axis=1)
+                  test_df = pd.concat([x_test, y_test_df], axis=1)
+
+                  # Add labels
+                  train_df['Set_Type'] = 'Train'
+                  test_df['Set_Type'] = 'Test'
+                  
+                  # Save to CSV
+                  full_df = pd.concat([train_df, test_df])
+                  
+                  full_df.index.name = 'id'
+                  full_df.reset_index(inplace=True)
+                  full_df.to_csv(filename, index=False)
+                  print(f"Data saved to {filename}. Train: {len(train_df)}, Test: {len(test_df)}")
+                  
+                  # 3. Return the splits to be used by Strategy
+                  return x_train, x_test, y_train, y_test
