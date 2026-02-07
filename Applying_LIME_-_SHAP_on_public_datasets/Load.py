@@ -60,7 +60,20 @@ class LoadData:
                   y = df[target_name]
             return self.advanced_imputation(X), y
             
-
+      def load_csv(self, file_path, target_cols=None):
+            df = pd.read_csv(file_path)
+            df.replace(['?', 'NA', '', 'null'], np.nan, inplace=True)
+            if target_cols:
+                  missing_targets = [col for col in target_cols if col not in df.columns]
+                  if missing_targets:
+                      raise ValueError(f"Requested target columns not found in dataset: {missing_targets}")
+                  y = df[target_cols].copy()
+                  X = df.drop(columns=target_cols)
+                  y = y.apply(pd.to_numeric, errors='coerce').fillna(0).astype(int)
+            else:
+                  raise ValueError("target_cols must be specified when loading from CSV.")
+            return self.advanced_imputation(X), y
+      
       def export_data_for_rulex(self, x, y, test_size=0.3, filename="rulex_ready_data.csv"):
                   print(f"Preparing data for Rulex export (Test size: {test_size})...")
                   
