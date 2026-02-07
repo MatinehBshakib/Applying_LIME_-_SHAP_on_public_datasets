@@ -12,6 +12,7 @@ def main():
     X, y = loader.load_csv(file_path=url, target_cols=target_list)
     le = LabelEncoder()
     y_encoded = le.fit_transform(y.values.ravel())
+    print(f"Mapping: 0 = {le.classes_[0]}, 1 = {le.classes_[1]}")
     y_final = pd.DataFrame(y_encoded, index=y.index, columns=target_list)
 
     X, y_final = shuffle(X, y_final, random_state=42)  # Shuffle the data to ensure randomness
