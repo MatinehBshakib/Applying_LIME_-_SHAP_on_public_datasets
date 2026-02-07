@@ -71,15 +71,17 @@ class LoadData:
             else:
                   df = pd.read_csv(file_path)
             #Drop id column
-            if 'id' in df.columns:
-               df.drop(columns=['id'], inplace=True)
+            
+            if 'id' not in df.columns:
+               df.insert(0, 'id', range(len(df)))
             df.replace(['?', 'NA', '', 'null'], np.nan, inplace=True)
             if target_cols:
                   missing_targets = [col for col in target_cols if col not in df.columns]
                   if missing_targets:
                       raise ValueError(f"Requested target columns not found in dataset: {missing_targets}")
                   y = df[target_cols].copy()
-                  X = df.drop(columns=target_cols)
+                  cols_to_drop = target_cols + ['id']  
+                  X = df.drop(columns=cols_to_drop)
                   y = y.apply(pd.to_numeric, errors='coerce').fillna(0).astype(int)
             else:
                   raise ValueError("target_cols must be specified when loading from CSV.")
