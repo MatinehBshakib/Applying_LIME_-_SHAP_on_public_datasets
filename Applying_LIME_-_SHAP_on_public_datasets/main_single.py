@@ -8,7 +8,8 @@ from sklearn.utils import shuffle  # <--- Make sure this is imported
 def main():
     loader = LoadData()
     target_list = ["class"] 
-    X, y = loader.load_dataset(data_id=43611, target_cols=target_list)
+    url = "Applying_LIME_-_SHAP_on_public_datasets\Applying_LIME_-_SHAP_on_public_datasets\messidor_features.arff"
+    X, y = loader.load_csv(file_path=url, target_cols=target_list)
     le = LabelEncoder()
     y_encoded = le.fit_transform(y.values.ravel())
     y_final = pd.DataFrame(y_encoded, index=y.index, columns=target_list)
@@ -18,7 +19,7 @@ def main():
     # 3. Split data 
     x_train, x_test, y_train, y_test = loader.export_data_for_rulex(X, y_final)
     # 4. Execute Strategy
-    strategy = SingleOutput(algo='rf')
+    strategy = SingleOutput(algo='xgb')
     strategy.execute(x_train, x_test, y_train, y_test)
     
     aggregator = PostProcessor()
