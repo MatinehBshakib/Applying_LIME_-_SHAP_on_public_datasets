@@ -37,7 +37,7 @@ class LoadData:
                   )        
           return x
     
-      def load_dataset(self, data_id, target_cols=None):
+      def load_link(self, data_id, target_cols=None):
             #Load the dataset from OpenML
             data = fetch_openml(data_id=data_id, version='active', as_frame=True) 
             df = data.frame.copy()
@@ -61,15 +61,19 @@ class LoadData:
                   y = df[target_name]
             return self.advanced_imputation(X), y
             
-      def load_csv(self, file_path, target_cols=None):
+      def load_file(self, file_path, target_cols=None):
             if file_path.endswith('.arff'):
                   data, meta = arff.loadarff(file_path)
                   df = pd.DataFrame(data)
                   # ARFF strings load as bytes (e.g., b'string'), we need to decode them
                   for col in df.select_dtypes([object]):
                         df[col] = df[col].str.decode('utf-8')
-            else:
+            elif file_path.endswith('.csv'):
                   df = pd.read_csv(file_path)
+            elif file_path.endswith('.xlsx', '.xls'):
+                  df = pd.read_excel(file_path)
+            else:
+                  raise ValueError("Unsupported file format. Please provide a .csv, .xlsx, .xls, or .arff file.")
             #Drop id column
             
             if 'id' not in df.columns:
