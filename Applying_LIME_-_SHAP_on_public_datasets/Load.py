@@ -3,6 +3,7 @@ import pandas as pd
 from sklearn.impute import SimpleImputer
 from sklearn.datasets import fetch_openml
 from sklearn.model_selection import train_test_split
+from scipy.io import arff
       
 class LoadData:
       def advanced_imputation(self, x, drop_threshold=0.5):
@@ -61,7 +62,17 @@ class LoadData:
             return self.advanced_imputation(X), y
             
       def load_csv(self, file_path, target_cols=None):
-            df = pd.read_csv(file_path)
+            if file_path.endswith('.arff'):
+                  data, meta = arff.loadarff(file_path)
+                  df = pd.DataFrame(data)
+                  # ARFF strings load as bytes (e.g., b'string'), we need to decode them
+                  for col in df.select_dtypes([object]):
+                        df[col] = df[col].str.decode('utf-8')
+            else:
+                  df = pd.read_csv(file_path)
+            #Drop id column
+            if 'id' in df.columns:
+               df.drop(columns=['id'], inplace=True)
             df.replace(['?', 'NA', '', 'null'], np.nan, inplace=True)
             if target_cols:
                   missing_targets = [col for col in target_cols if col not in df.columns]

@@ -7,8 +7,8 @@ from sklearn.utils import shuffle  # <--- Make sure this is imported
 
 def main():
     loader = LoadData()
-    target_list = ["class"] 
-    url = "Applying_LIME_-_SHAP_on_public_datasets\Applying_LIME_-_SHAP_on_public_datasets\messidor_features.arff"
+    target_list = ["Class"] 
+    url = "messidor_features.arff"
     X, y = loader.load_csv(file_path=url, target_cols=target_list)
     le = LabelEncoder()
     y_encoded = le.fit_transform(y.values.ravel())
