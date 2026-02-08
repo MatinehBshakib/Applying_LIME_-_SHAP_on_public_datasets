@@ -3,9 +3,9 @@ import os
 import glob
 
 class PostProcessor:
-    def aggregate_and_clean(self, output_filename="final_explanation_results.csv"):
+    def aggregate_and_clean(self, database_name=None, base_filename="final_explanation_results.csv"):
         print("\n>>> Starting Aggregation and Cleanup...")
-        
+        output_filename = f"{database_name}_{base_filename}"
         # 1. Find all SHAP files (we use these as the anchor)
         shap_files = glob.glob("shap_*.csv")
         

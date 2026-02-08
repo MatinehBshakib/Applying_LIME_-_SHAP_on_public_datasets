@@ -8,6 +8,7 @@ from sklearn.utils import shuffle  # <--- Make sure this is imported
 def main():
     loader = LoadData()
     target_list = ["Grade"] 
+    dataset_name = "Glioma_Grading "
     url = "Applying_LIME_-_SHAP_on_public_datasets/TCGA_InfoWithGrade.csv"
     X, y = loader.load_file(file_path=url, target_cols=target_list)
     le = LabelEncoder()
@@ -18,13 +19,13 @@ def main():
     X, y_final = shuffle(X, y_final, random_state=42)  # Shuffle the data to ensure randomness
 
     # 3. Split data 
-    x_train, x_test, y_train, y_test = loader.export_data_for_rulex(X, y_final)
+    x_train, x_test, y_train, y_test = loader.export_data_for_rulex(X, y_final, dataset_name=dataset_name)
     # 4. Execute Strategy
     strategy = SingleOutput(algo='rf')
     strategy.execute(x_train, x_test, y_train, y_test)
     
     aggregator = PostProcessor()
-    aggregator.aggregate_and_clean()
+    aggregator.aggregate_and_clean(database_name=dataset_name)
 
 if __name__ == "__main__":
     main()

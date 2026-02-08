@@ -91,8 +91,9 @@ class LoadData:
                   raise ValueError("target_cols must be specified when loading from CSV.")
             return self.advanced_imputation(X), y
       
-      def export_data_for_rulex(self, x, y, test_size=0.3, filename="rulex_ready_data.csv"):
+      def export_data_for_rulex(self, x, y, dataset_name=None, test_size=0.3, filename="rulex_ready_data.csv"):
                   print(f"Preparing data for Rulex export (Test size: {test_size})...")
+                  full_filename = f"{dataset_name}_{filename}"
                   
                   # 1. Perform the split 
                   x_train, x_test, y_train, y_test = train_test_split(
@@ -120,8 +121,8 @@ class LoadData:
                   
                   full_df.index.name = 'id'
                   full_df.reset_index(inplace=True)
-                  full_df.to_csv(filename, index=False)
-                  print(f"Data saved to {filename}. Train: {len(train_df)}, Test: {len(test_df)}")
+                  full_df.to_csv(full_filename, index=False)
+                  print(f"Data saved to {full_filename}. Train: {len(train_df)}, Test: {len(test_df)}")
                   
                   # 3. Return the splits to be used by Strategy
                   return x_train, x_test, y_train, y_test
