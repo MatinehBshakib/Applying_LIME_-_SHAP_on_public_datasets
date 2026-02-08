@@ -9,7 +9,7 @@ def main():
     loader = LoadData()
     target_list = ["Grade"] 
     dataset_name = "Glioma_Grading "
-    url = "Applying_LIME_-_SHAP_on_public_datasets/TCGA_InfoWithGrade.csv"
+    url = "TCGA_InfoWithGrade.csv"
     X, y = loader.load_file(file_path=url, target_cols=target_list)
     le = LabelEncoder()
     y_encoded = le.fit_transform(y.values.ravel())
