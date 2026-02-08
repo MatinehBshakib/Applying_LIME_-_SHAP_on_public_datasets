@@ -7,9 +7,9 @@ from sklearn.utils import shuffle  # <--- Make sure this is imported
 
 def main():
     loader = LoadData()
-    target_list = ["Grade"] 
-    dataset_name = "Glioma_Grading "
-    url = "TCGA_InfoWithGrade.csv"
+    target_list = ["Baselinehistological staging"] 
+    dataset_name = "Hepatitis"
+    url = "HCV-Egy-Data.csv"
     X, y = loader.load_file(file_path=url, target_cols=target_list)
     le = LabelEncoder()
     y_encoded = le.fit_transform(y.values.ravel())
@@ -21,7 +21,7 @@ def main():
     # 3. Split data 
     x_train, x_test, y_train, y_test = loader.export_data_for_rulex(X, y_final, dataset_name=dataset_name)
     # 4. Execute Strategy
-    strategy = SingleOutput(algo='rf')
+    strategy = SingleOutput(algo='xgb')
     strategy.execute(x_train, x_test, y_train, y_test)
     
     aggregator = PostProcessor()
