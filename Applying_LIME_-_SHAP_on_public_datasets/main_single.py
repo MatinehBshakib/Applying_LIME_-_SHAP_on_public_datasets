@@ -8,10 +8,10 @@ from sklearn.utils import shuffle  # <--- Make sure this is imported
 
 def main():
     loader = LoadData()
-    target_list = ["Baselinehistological staging"] 
-    dataset_name = "Hepatitis"
-    url = "HCV-Egy-Data.csv"
-    X, y = loader.load_file(file_path=url, target_cols=target_list)
+    target_list = ["Class"]  # Change this to the desired target column name(s) for the desired dataset
+    dataset_name = "Breast Cancer_Original"  # Change this to the desired dataset name
+    url = None # Not used in this code, but can be set if needed for other datasets
+    X, y = loader.load_link(data_id = 15, target_cols=target_list)
     le = LabelEncoder()
     if dataset_name == "Hepatitis":
         hcv = HCVOpt()
