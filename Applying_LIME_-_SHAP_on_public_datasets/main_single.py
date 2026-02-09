@@ -9,10 +9,10 @@ from sklearn.utils import shuffle
 
 def main():
     loader = LoadData()
-    target_list = ["NObeyesdad"]  # Change this to the desired target column name(s) for the desired dataset
-    dataset_name = "Obesity_level"  # Change this to the desired dataset name
-    url = "ObesityDataSet_raw_and_data_sinthetic.csv" # Not used in this code, but can be set if needed for other datasets
-    X, y = loader.load_file(file_path= url, target_cols=target_list)
+    target_list = ["Diabetes_binary"]  # Change this to the desired target column name(s) for the desired dataset
+    dataset_name = "CDC_Diabetes"  # Change this to the desired dataset name
+    url = None # Change this to the desired dataset URL if needed, otherwise it will load from the local database
+    X, y = loader.load_link(data_id=46841, target_cols=target_list)
     print(y.value_counts())  # Print the distribution of the target variable
     le = LabelEncoder()
     if dataset_name == "Hepatitis":
