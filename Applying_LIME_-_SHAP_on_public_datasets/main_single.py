@@ -4,15 +4,16 @@ from sklearn.preprocessing import LabelEncoder
 from Strategy import SingleOutput
 from HCVOptimizer import HCVOptimizer as HCVOpt
 from ObesityOptimizer import ObesityOptimizer as ObesityOpt
+from DiabetesOptimizer import DiabetesOptimizer as DiabetesOpt
 from PostProcessor import PostProcessor
 import pandas as pd
 from sklearn.utils import shuffle  
 
 def main():
     loader = LoadData()
-    target_list = ["Diabetes_binary"]  # Change this to the desired target column name(s) for the desired dataset
-    dataset_name = "CDC_Diabetes"  # Change this to the desired dataset name
-    url = "diabetes_binary_5050split_health_indicators_BRFSS2015.csv" # Change this to the desired dataset URL if needed, otherwise it will load from the local database
+    target_list = ["readmitted"]  # Change this to the desired target column name(s) for the desired dataset
+    dataset_name = "Diabetes_130_US"  # Change this to the desired dataset name
+    url = "diabetic_data.csv" # Change this to the desired dataset URL if needed, otherwise it will load from the local database
     X, y = loader.load_file(file_path=url, target_cols=target_list)
     le = LabelEncoder()
     if dataset_name == "Hepatitis":
@@ -21,13 +22,16 @@ def main():
     elif dataset_name == "Obesity_level":
         obesity = ObesityOpt()
         X, y_final = obesity.optimize(X, y, target_name=target_list[0])
+    elif dataset_name == "Diabetes_130_US":
+        diabetes = DiabetesOpt()
+        X, y_final = diabetes.optimize(X, y, target_name=target_list[0])
     else: 
         y_encoded = le.fit_transform(y.values.ravel())
         print(f"Mapping: 0 = {le.classes_[0]}, 1 = {le.classes_[1]}")
         y_final = pd.DataFrame(y_encoded, index=y.index, columns=target_list)
 
     X, y_final = shuffle(X, y_final, random_state=42)  # Shuffle the data to ensure randomness
-    SAMPLE_SIZE = 2500  # Adjust this number 
+    SAMPLE_SIZE = 2500  # Adjustable number 
         
     if len(X) > SAMPLE_SIZE:
         print(f"\n>>> Downsampling dataset from {len(X)} to {SAMPLE_SIZE} rows...")
