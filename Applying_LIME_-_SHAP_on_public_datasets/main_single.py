@@ -1,3 +1,4 @@
+from sklearn.model_selection import train_test_split
 from Load import LoadData
 from sklearn.preprocessing import LabelEncoder
 from Strategy import SingleOutput
@@ -11,9 +12,8 @@ def main():
     loader = LoadData()
     target_list = ["Diabetes_binary"]  # Change this to the desired target column name(s) for the desired dataset
     dataset_name = "CDC_Diabetes"  # Change this to the desired dataset name
-    url = None # Change this to the desired dataset URL if needed, otherwise it will load from the local database
-    X, y = loader.load_link(data_id=46841, target_cols=target_list)
-    print(y.value_counts())  # Print the distribution of the target variable
+    url = "diabetes_binary_5050split_health_indicators_BRFSS2015.csv" # Change this to the desired dataset URL if needed, otherwise it will load from the local database
+    X, y = loader.load_file(file_path=url, target_cols=target_list)
     le = LabelEncoder()
     if dataset_name == "Hepatitis":
         hcv = HCVOpt()
@@ -27,7 +27,16 @@ def main():
         y_final = pd.DataFrame(y_encoded, index=y.index, columns=target_list)
 
     X, y_final = shuffle(X, y_final, random_state=42)  # Shuffle the data to ensure randomness
-
+    SAMPLE_SIZE = 2500  # Adjust this number 
+        
+    if len(X) > SAMPLE_SIZE:
+        print(f"\n>>> Downsampling dataset from {len(X)} to {SAMPLE_SIZE} rows...")
+        X, _, y_final, _ = train_test_split(
+            X, y_final, 
+            train_size=SAMPLE_SIZE, 
+            stratify=y_final, 
+            random_state=42
+        )
     # 3. Split data 
     x_train, x_test, y_train, y_test = loader.export_data_for_rulex(X, y_final, dataset_name=dataset_name)
     # 4. Execute Strategy
