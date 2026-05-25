@@ -114,9 +114,9 @@ def plot_spearman_heatmap(summary_csv, output_folder):
 
     cbar = fig.colorbar(im, ax=ax, fraction=0.03, pad=0.02)
     cbar.set_label('Spearman ρ', fontsize=9)
-    ax.set_title('Spearman Rank Correlation between XAI Methods\n'
+    """ax.set_title('Spearman Rank Correlation between XAI Methods\n'
                  '(red border = SHAP–LIME baseline)',
-                 fontsize=13, fontweight='bold', pad=12)
+                 fontsize=13, fontweight='bold', pad=12)"""
 
     _ensure(output_folder)
     _save(fig, os.path.join(output_folder, 'spearman_heatmap.png'))
@@ -169,9 +169,7 @@ def plot_grand_average_bars(summary_csv, output_folder):
         mpatches.Patch(color=DARK_BLUE,  label='Rulex–SHAP (main result)'),
     ]
     fig.legend(handles=legend_patches, loc='lower center', ncol=2,
-               fontsize=9, frameon=False, bbox_to_anchor=(0.5, -0.04))
-    fig.suptitle('Grand Average Alignment — red dashed line = SHAP–LIME reference',
-                 fontsize=12, fontweight='bold', y=1.02)
+               fontsize=9, frameon=False, bbox_to_anchor=(0.5, -0.15))
 
     _ensure(output_folder)
     _save(fig, os.path.join(output_folder, 'grand_average_bars.png'))
@@ -213,9 +211,9 @@ def plot_parity_profile(summary_csv, output_folder):
     ax.set_xticklabels(datasets, rotation=30, ha='right', fontsize=9)
     ax.set_ylabel('Spearman ρ', fontsize=11)
     ax.set_ylim(-0.2, 1.05)
-    ax.set_title('Per-Dataset Spearman: Rulex–SHAP vs. SHAP–LIME Baseline\n'
+    """ax.set_title('Per-Dataset Spearman: Rulex–SHAP vs. SHAP–LIME Baseline\n'
                  '(dotted lines = grand averages)',
-                 fontsize=12, fontweight='bold')
+                 fontsize=12, fontweight='bold')"""
     ax.legend(fontsize=9, frameon=False, loc='lower right')
     ax.yaxis.grid(True, linestyle=':', alpha=0.4)
     ax.set_axisbelow(True)
@@ -261,9 +259,9 @@ def plot_jaccard_heatmap(summary_csv, output_folder):
 
     cbar = fig.colorbar(im, ax=ax, fraction=0.03, pad=0.02)
     cbar.set_label('Jaccard J (top-5)', fontsize=9)
-    ax.set_title('Jaccard Similarity (Top-5 Features) between XAI Methods\n'
+    """ax.set_title('Jaccard Similarity (Top-5 Features) between XAI Methods\n'
                  '(red border = SHAP–LIME baseline)',
-                 fontsize=13, fontweight='bold', pad=12)
+                 fontsize=13, fontweight='bold', pad=12)"""
 
     _ensure(output_folder)
     _save(fig, os.path.join(output_folder, 'jaccard_heatmap.png'))
@@ -394,7 +392,7 @@ def plot_cumulative_ablation_per_dataset(
     # ── Legend box in upper-left (always clear of right-side cluster) ─────────
     legend_text = 'Top impactful:\n' + '\n'.join(legend_lines)
     ax.text(
-        0.01, 0.98, legend_text,
+        0.01, 0.99, legend_text,
         transform=ax.transAxes,
         fontsize=8.5, color=ACCENT_RED, fontweight='bold',
         va='top', ha='left', linespacing=1.6,
@@ -419,17 +417,11 @@ def plot_cumulative_ablation_per_dataset(
 
     trunc_note = (f'  ({n} most important of {total_feats} features shown)'
                   if truncated else '')
-    ax.set_title(
-        f'Cumulative Ablation \u2014 {dataset_name}{trunc_note}\n'
-        f'Each step = prediction change after masking that feature.  '
-        f'\u2193\u2191 = direction.  Numbered = top {top_k_annotate} most impactful.',
-        fontsize=12, fontweight='bold', pad=12, loc='left'
-    )
-    ax.set_xlabel(
+    """ax.set_xlabel(
         ('← less important features hidden  |  ' if truncated else '') +
         'Features: least important (left) → most important (right)',
         fontsize=9
-    )
+    )"""
 
     plt.tight_layout()
     _ensure(output_folder)
