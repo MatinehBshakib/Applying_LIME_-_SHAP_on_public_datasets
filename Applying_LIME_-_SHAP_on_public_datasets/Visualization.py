@@ -94,7 +94,8 @@ def plot_spearman_heatmap(summary_csv, output_folder):
     im = ax.imshow(matrix.values, cmap=cmap, vmin=-0.2, vmax=1.0, aspect='auto')
 
     ax.set_xticks(range(len(METHOD_PAIRS)))
-    ax.set_xticklabels([p.replace('-', '–') for p in METHOD_PAIRS],
+    # Replace Rulex with LLM and Ablat with MFP purely for the visual label
+    ax.set_xticklabels([p.replace('-', '–').replace('Rulex', 'LLM').replace('Ablat', 'MFP') for p in METHOD_PAIRS],
                        rotation=30, ha='right', fontsize=9)
     ax.set_yticks(range(len(matrix)))
     ax.set_yticklabels(matrix.index.tolist(), fontsize=9)
@@ -114,6 +115,8 @@ def plot_spearman_heatmap(summary_csv, output_folder):
 
     cbar = fig.colorbar(im, ax=ax, fraction=0.03, pad=0.02)
     cbar.set_label('Spearman ρ', fontsize=9)
+    
+    # Title commented out per earlier requests
     """ax.set_title('Spearman Rank Correlation between XAI Methods\n'
                  '(red border = SHAP–LIME baseline)',
                  fontsize=13, fontweight='bold', pad=12)"""
@@ -155,7 +158,8 @@ def plot_grand_average_bars(summary_csv, output_folder):
                    linewidth=1.4, alpha=0.7, zorder=2)
 
         ax.set_xticks(range(len(METHOD_PAIRS)))
-        ax.set_xticklabels([p.replace('-', '–') for p in METHOD_PAIRS],
+        # Replace Rulex with LLM and Ablat with MFP purely for the visual label
+        ax.set_xticklabels([p.replace('-', '–').replace('Rulex', 'LLM').replace('Ablat', 'MFP') for p in METHOD_PAIRS],
                            rotation=35, ha='right', fontsize=8)
         ax.set_ylim(0, 1.08)
         ax.set_ylabel(mlabel, fontsize=10)
@@ -166,7 +170,7 @@ def plot_grand_average_bars(summary_csv, output_folder):
 
     legend_patches = [
         mpatches.Patch(color=ACCENT_RED, label='SHAP–LIME (baseline)'),
-        mpatches.Patch(color=DARK_BLUE,  label='Rulex–SHAP (main result)'),
+        mpatches.Patch(color=DARK_BLUE,  label='LLM–SHAP (main result)'),
     ]
     fig.legend(handles=legend_patches, loc='lower center', ncol=2,
                fontsize=9, frameon=False, bbox_to_anchor=(0.5, -0.15))
@@ -176,7 +180,7 @@ def plot_grand_average_bars(summary_csv, output_folder):
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# PLOT 3 — Per-Dataset Parity Profile (Rulex-SHAP vs SHAP-LIME)
+# PLOT 3 — Per-Dataset Parity Profile (LLM-SHAP vs SHAP-LIME)
 # ═══════════════════════════════════════════════════════════════════════════════
 
 def plot_parity_profile(summary_csv, output_folder):
@@ -184,14 +188,16 @@ def plot_parity_profile(summary_csv, output_folder):
     data = df[df['Dataset'] != 'TOTAL AVERAGE'].copy()
 
     datasets   = data['Dataset'].tolist()
+    # Still load using "Rulex" column from CSV
     rulex_shap = data['Spearman (Rulex-SHAP)'].astype(float).tolist()
     shap_lime  = data['Spearman (SHAP-LIME)'].astype(float).tolist()
     x = np.arange(len(datasets))
 
     fig, ax = plt.subplots(figsize=(11, 5))
 
+    # Display label as LLM-SHAP
     ax.plot(x, rulex_shap, 'o-', color=DARK_BLUE, linewidth=2,
-            markersize=8, label='Rulex–SHAP (main result)', zorder=4)
+            markersize=8, label='LLM–SHAP (main result)', zorder=4)
     ax.plot(x, shap_lime, 's--', color=ACCENT_RED, linewidth=2,
             markersize=8, label='SHAP–LIME (baseline)', zorder=4)
 
@@ -211,9 +217,6 @@ def plot_parity_profile(summary_csv, output_folder):
     ax.set_xticklabels(datasets, rotation=30, ha='right', fontsize=9)
     ax.set_ylabel('Spearman ρ', fontsize=11)
     ax.set_ylim(-0.2, 1.05)
-    """ax.set_title('Per-Dataset Spearman: Rulex–SHAP vs. SHAP–LIME Baseline\n'
-                 '(dotted lines = grand averages)',
-                 fontsize=12, fontweight='bold')"""
     ax.legend(fontsize=9, frameon=False, loc='lower right')
     ax.yaxis.grid(True, linestyle=':', alpha=0.4)
     ax.set_axisbelow(True)
@@ -240,7 +243,8 @@ def plot_jaccard_heatmap(summary_csv, output_folder):
     im = ax.imshow(matrix.values, cmap=cmap, vmin=0.0, vmax=1.0, aspect='auto')
 
     ax.set_xticks(range(len(METHOD_PAIRS)))
-    ax.set_xticklabels([p.replace('-', '–') for p in METHOD_PAIRS],
+    # Replace Rulex with LLM and Ablat with MFP purely for the visual label
+    ax.set_xticklabels([p.replace('-', '–').replace('Rulex', 'LLM').replace('Ablat', 'MFP') for p in METHOD_PAIRS],
                        rotation=30, ha='right', fontsize=9)
     ax.set_yticks(range(len(matrix)))
     ax.set_yticklabels(matrix.index.tolist(), fontsize=9)
@@ -259,9 +263,6 @@ def plot_jaccard_heatmap(summary_csv, output_folder):
 
     cbar = fig.colorbar(im, ax=ax, fraction=0.03, pad=0.02)
     cbar.set_label('Jaccard J (top-5)', fontsize=9)
-    """ax.set_title('Jaccard Similarity (Top-5 Features) between XAI Methods\n'
-                 '(red border = SHAP–LIME baseline)',
-                 fontsize=13, fontweight='bold', pad=12)"""
 
     _ensure(output_folder)
     _save(fig, os.path.join(output_folder, 'jaccard_heatmap.png'))
@@ -417,11 +418,6 @@ def plot_cumulative_ablation_per_dataset(
 
     trunc_note = (f'  ({n} most important of {total_feats} features shown)'
                   if truncated else '')
-    """ax.set_xlabel(
-        ('← less important features hidden  |  ' if truncated else '') +
-        'Features: least important (left) → most important (right)',
-        fontsize=9
-    )"""
 
     plt.tight_layout()
     _ensure(output_folder)
